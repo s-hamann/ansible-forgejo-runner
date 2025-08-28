@@ -1,0 +1,105 @@
+---
+- name: 'Gather OS specific variables'
+  ansible.builtin.include_vars: "{{ vars_file }}"
+  loop:
+    - default.yml
+    - "{{ ansible_facts['os_family'] | lower }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | ansible.builtin.regex_search('[0-9]+\\.[0-9]+') }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] }}.yml"
+  loop_control:
+    loop_var: vars_file
+  when: "(vars_file is ansible.builtin.abs and vars_file is ansible.builtin.file) or (vars_file is not ansible.builtin.abs and (role_path ~ '/vars/' ~ vars_file) is ansible.builtin.file)"
+  tags:
+    - always
+
+- name: 'Ensure configuration consistency'
+  ansible.builtin.set_fact:
+    forgejo_runner_use_pkg: "{{ forgejo_runner_has_pkg | bool and forgejo_runner_use_pkg | bool }}"
+
+- name: 'Set user name to distribution package value'
+  ansible.builtin.set_fact:
+    forgejo_runner_user: "{{ forgejo_runner_pkg_user }}"
+    forgejo_runner_group: "{{ forgejo_runner_pkg_group }}"
+  when: "forgejo_runner_use_pkg | bool"
+
+- name: 'Install Forgejo runner using the package manager'
+  ansible.builtin.package:
+    name: "{{ forgejo_runner_packages }}"
+    state: present
+  notify: forgejo_runner_restart
+  when: "forgejo_runner_use_pkg | bool"
+
+- name: 'Install Forgejo runner from binary'
+  ansible.builtin.include_tasks: install_forgejo_runner_binary.yml
+  when: "not forgejo_runner_use_pkg | bool"
+
+- name: "Add user {{ forgejo_runner_user }} to extra groups"
+  ansible.builtin.user:
+    name: "{{ forgejo_runner_user }}"
+    groups: "{{ forgejo_runner_extra_groups }}"
+    append: true
+  notify: forgejo_runner_restart
+  when: "[forgejo_runner_extra_groups | default([])] | ansible.builtin.flatten | count"
+
+- name: 'Create required directories'
+  ansible.builtin.file:
+    path: "{{ directory.path }}"
+    state: directory
+    owner: "{{ directory.owner | default(forgejo_runner_user) }}"
+    group: "{{ directory.group | default(forgejo_runner_group) }}"
+    mode: "{{ directory.mode | default('0750') }}"
+  loop:
+    - path: '/etc/forgejo-runner'
+      owner: root
+      group: root
+      mode: '0755'
+    - path: "{{ forgejo_runner_data_path }}"
+  loop_control:
+    loop_var: directory
+    label: "{{ directory.path }}"
+
+- name: 'Configure Forgejo runner service (OpenRC)'
+  ansible.builtin.template:
+    dest: '/etc/conf.d/forgejo-runner'
+    src: forgejo-runner.conf.j2
+    owner: root
+    group: root
+    mode: '0644'
+  when: "ansible_facts['service_mgr'] == 'openrc'"
+  notify: forgejo_runner_restart
+
+- name: 'Configure Forgejo runner'
+  ansible.builtin.template:
+    dest: '/etc/forgejo-runner/config.yml'
+    src: config.yml.j2
+    owner: root
+    group: "{{ forgejo_runner_group }}"
+    mode: '0640'
+  no_log: "{{ forgejo_runner_config.cache.secret is defined }}"
+  notify: forgejo_runner_restart
+
+- name: 'Register the Forgejo runner'
+  ansible.builtin.command:
+    cmd: >-
+      su {{ forgejo_runner_user | ansible.builtin.quote }} -s /bin/sh -c "
+      forgejo-runner
+      --config /etc/forgejo-runner/config.yml
+      create-runner-file
+      --instance {{ forgejo_runner_for | ansible.builtin.quote }}
+      --name {{ forgejo_runner_name | ansible.builtin.quote }}
+      --secret {{ forgejo_runner_secret | ansible.builtin.quote }}
+      "
+    chdir: "{{ forgejo_runner_data_path }}"
+  changed_when: true
+
+# If the unit file changed, reload it now.
+- name: 'Trigger handlers'
+  ansible.builtin.meta: flush_handlers
+
+- name: 'Enable and start Forgejo runner'
+  ansible.builtin.service:
+    name: forgejo-runner
+    enabled: true
+    state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'started') }}"

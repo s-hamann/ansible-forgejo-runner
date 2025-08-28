@@ -1,0 +1,20 @@
+{# vim: filetype=gentoo-init-d.jinja2 #}
+#!/sbin/openrc-run
+
+description="Forgejo CI runner"
+name="Forgejo runner"
+
+: ${cfgfile:="/etc/forgejo-runner/config.yml"}
+: ${datadir:="{{ forgejo_runner_data_path }}"}
+: ${command_user:="{{ forgejo_runner_user }}"}
+
+command="/usr/local/bin/forgejo-runner"
+command_args="daemon --config $cfgfile"
+command_background="yes"
+directory="$datadir"
+pidfile="/run/$RC_SVCNAME.pid"
+
+depend() {
+	need net
+	use dns logger podman docker
+}

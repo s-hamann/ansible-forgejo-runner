@@ -1,0 +1,20 @@
+---
+- name: 'Reload service files'
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: forgejo_runner_reload_service_files
+  when: "ansible_facts['service_mgr'] == 'systemd'"
+
+- name: 'Remove temporary directory'
+  ansible.builtin.file:
+    path: "{{ _tmpdir.path }}"
+    state: absent
+  diff: false
+  listen: forgejo_runner_remove_tmpdir
+
+- name: 'Restart Forgejo Runner'
+  ansible.builtin.service:
+    name: forgejo-runner
+    enabled: true
+    state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'restarted') }}"
+  listen: forgejo_runner_restart

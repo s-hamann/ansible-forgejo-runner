@@ -1,0 +1,21 @@
+{# vim: filetype=systemd.jinja2 #}
+[Unit]
+Description=Forgejo CI runner
+After=network.target
+Requires=network.target
+
+[Service]
+Type=notify
+WatchdogSec=30s
+Restart=always
+RestartSec=2s
+
+User={{ forgejo_runner_user }}
+Group={{ forgejo_runner_group }}
+
+ExecStart=/usr/local/bin/forgejo-runner --config /etc/forgejo-runner/config.yml daemon
+WorkingDirectory={{ forgejo_data_path | ansible.builtin.quote }}
+RuntimeDirectory=forgejo-runner
+
+[Install]
+WantedBy=multi-user.target

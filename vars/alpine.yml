@@ -1,0 +1,6 @@
+---
+forgejo_runner_has_pkg: true
+forgejo_runner_pkg_name:
+  - forgejo-runner
+  - forgejo-runner-openrc
+forgejo_runner_gnupg_package: gnupg

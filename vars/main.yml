@@ -1,0 +1,8 @@
+---
+forgejo_runner_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else ansible_facts['architecture'] }}"
+forgejo_runner_version_url: 'https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest'
+forgejo_runner_base_url: 'https://code.forgejo.org/forgejo/runner/releases/download/'
+forgejo_runner_pgp_fingerprint: EB114F5E6C0DC2BCDD183550A4B61A2DC5923710
+forgejo_runner_openrc_conf_defaults:
+  cfgfile: '/etc/forgejo-runner/config.yml'
+  datadir: "{{ forgejo_runner_data_path }}"

@@ -1,0 +1,9 @@
+---
+forgejo_runner_use_pkg: true
+forgejo_runner_user: forgejo-runner
+forgejo_runner_group: "{{ forgejo_runner_user }}"
+forgejo_runner_extra_groups: []
+forgejo_runner_data_path: '/var/lib/forgejo-runner'
+forgejo_runner_config: {}
+forgejo_runner_name: "{{ ansible_facts['hostname'] }}"
+forgejo_runner_openrc_conf: {}
