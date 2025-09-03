@@ -14,7 +14,7 @@ User={{ forgejo_runner_user }}
 Group={{ forgejo_runner_group }}
 
 ExecStart=/usr/local/bin/forgejo-runner --config /etc/forgejo-runner/config.yml daemon
-WorkingDirectory={{ forgejo_data_path | ansible.builtin.quote }}
+WorkingDirectory={{ forgejo_runner_data_path | ansible.builtin.quote }}
 RuntimeDirectory=forgejo-runner
 
 [Install]
