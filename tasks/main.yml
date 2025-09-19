@@ -81,18 +81,14 @@
   notify: forgejo_runner_restart
 
 - name: 'Register the Forgejo runner'
-  ansible.builtin.command:
-    cmd: >-
-      su {{ forgejo_runner_user | ansible.builtin.quote }} -s /bin/sh -c "
-      forgejo-runner
-      --config /etc/forgejo-runner/config.yml
-      create-runner-file
-      --instance {{ forgejo_runner_for | ansible.builtin.quote }}
-      --name {{ forgejo_runner_name | ansible.builtin.quote }}
-      --secret {{ forgejo_runner_secret | ansible.builtin.quote }}
-      "
-    chdir: "{{ forgejo_runner_data_path }}"
-  changed_when: true
+  ansible.builtin.template:
+    dest: "{{ [forgejo_runner_data_path, forgejo_runner_config.runner.file | default('.runner')] | ansible.builtin.path_join }}"
+    src: runner.j2
+    owner: root
+    group: "{{ forgejo_runner_group }}"
+    mode: '0640'
+  no_log: true
+  notify: forgejo_runner_restart
 
 # If the unit file changed, reload it now.
 - name: 'Trigger handlers'
