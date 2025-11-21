@@ -9,9 +9,9 @@
 # * creating the necessary system user account
 # * installing a systemd service file/OpenRC init script
 
-- name: 'Install gnupg'
+- name: 'Install dependencies'
   ansible.builtin.package:
-    name: "{{ forgejo_runner_gnupg_package }}"
+    name: "{{ forgejo_runner_dependencies }}"
     state: present
 
 - name: 'Determine Forgejo runner version to install'

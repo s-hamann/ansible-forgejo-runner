@@ -4,3 +4,6 @@ forgejo_runner_pkg_name: forgejo-runner
 forgejo_runner_pkg_user: forgejo-runner
 forgejo_runner_pkg_group: "{{ forgejo_runner_pkg_user }}"
 forgejo_runner_gnupg_package: gnupg2
+forgejo_runner_dependencies:
+  - git
+  - "{{ forgejo_runner_gnupg_package }}"
