@@ -41,7 +41,7 @@
     groups: "{{ forgejo_runner_extra_groups }}"
     append: true
   notify: forgejo_runner_restart
-  when: "[forgejo_runner_extra_groups | default([])] | ansible.builtin.flatten | count"
+  when: "[forgejo_runner_extra_groups | default([])] | ansible.builtin.flatten | count > 0"
 
 - name: 'Create required directories'
   ansible.builtin.file:
