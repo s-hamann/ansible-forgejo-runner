@@ -29,7 +29,10 @@
         forgejo_runner_version: "{{ _forgejo_runner_latest.json.name.removeprefix('v') }}"
 
 - name: 'Get currently installed version of Forgejo runner'
-  ansible.builtin.command: '/usr/local/bin/forgejo-runner --version'
+  ansible.builtin.command:
+    argv:
+      - '/usr/local/bin/forgejo-runner'
+      - --version
   check_mode: false
   changed_when: false
   ignore_errors: true
@@ -77,12 +80,16 @@
       when: "_tmpdir is not skipped"
 
     - name: 'Get the PGP keys'
-      ansible.builtin.command: >
-        gpg
-        --keyserver hkps://keys.openpgp.org
-        --no-default-keyring
-        --keyring trustedkeys.kbx
-        --recv-key {{ forgejo_runner_pgp_fingerprint | ansible.builtin.quote }}
+      ansible.builtin.command:
+        argv:
+          - gpg
+          - --keyserver
+          - 'hkps://keys.openpgp.org'
+          - --no-default-keyring
+          - --keyring
+          - trustedkeys.kbx
+          - --recv-key
+          - "{{ forgejo_runner_pgp_fingerprint | ansible.builtin.quote }}"
       environment:
         GNUPGHOME: "{{ _tmpdir.path }}/.gnupg"
       register: _gpg_recv_key
@@ -90,7 +97,11 @@
       when: "_tmpdir is not skipped"
 
     - name: 'Verify signature'
-      ansible.builtin.command: "gpgv '{{ _tmpdir.path }}/{{ _filename }}.asc' '{{ _tmpdir.path }}/{{ _filename }}'"
+      ansible.builtin.command:
+        argv:
+          - gpgv
+          - "{{ _tmpdir.path }}/{{ _filename }}.asc"
+          - "{{ _tmpdir.path }}/{{ _filename }}"
       environment:
         GNUPGHOME: "{{ _tmpdir.path }}/.gnupg"
       changed_when: false
