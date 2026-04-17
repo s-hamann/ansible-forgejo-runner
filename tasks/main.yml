@@ -16,24 +16,24 @@
 
 - name: 'Ensure configuration consistency'
   ansible.builtin.set_fact:
-    forgejo_runner_use_pkg: "{{ forgejo_runner_has_pkg | bool and forgejo_runner_use_pkg | bool }}"
+    forgejo_runner_use_pkg: "{{ forgejo_runner_has_pkg | ansible.builtin.bool and forgejo_runner_use_pkg | ansible.builtin.bool }}"
 
 - name: 'Set user name to distribution package value'
   ansible.builtin.set_fact:
     forgejo_runner_user: "{{ forgejo_runner_pkg_user }}"
     forgejo_runner_group: "{{ forgejo_runner_pkg_group }}"
-  when: "forgejo_runner_use_pkg | bool"
+  when: "forgejo_runner_use_pkg | ansible.builtin.bool"
 
 - name: 'Install Forgejo runner using the package manager'
   ansible.builtin.package:
     name: "{{ forgejo_runner_packages }}"
     state: present
   notify: forgejo_runner_restart
-  when: "forgejo_runner_use_pkg | bool"
+  when: "forgejo_runner_use_pkg | ansible.builtin.bool"
 
 - name: 'Install Forgejo runner from binary'
   ansible.builtin.include_tasks: install_forgejo_runner_binary.yml
-  when: "not forgejo_runner_use_pkg | bool"
+  when: "not forgejo_runner_use_pkg | ansible.builtin.bool"
 
 - name: "Add user {{ forgejo_runner_user }} to extra groups"
   ansible.builtin.user:
