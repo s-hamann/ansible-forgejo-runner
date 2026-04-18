@@ -30,15 +30,21 @@ Role Variables
 * `forgejo_runner_config`  
   A dictionary of configuration options for Forgejo runner, to be written to `config.yml`.
   Refer to the [Forgejo runner documentation](https://forgejo.org/docs/latest/admin/actions/runner-installation/#configuration) for options and their meaning.
+  Note: When UUIDs are not defined in `forgejo_runner_config.server.connections`, this role automatically derives them from the first 16 bytes of the tokens.
   Optional.
 * `forgejo_runner_for`  
   The URL of the Forgejo instance to register this runner with.
-  Mandatory.
+  Uses the deprecated `.runner` file registration mechanism.
+  Prefer setting the URL in `forgejo_runner_config`.
+  Optional.
 * `forgejo_runner_secret`  
   A 40-character long hexadecimal secret shared between the Forgejo instance and this Forgejo runner.
-  Mandatory.
+  Uses the deprecated `.runner` file registration mechanism.
+  Prefer setting the token in `forgejo_runner_config`.
+  Optional.
 * `forgejo_runner_name`  
   The name under which to register this Forgejo runner instance.
+  Uses the deprecated `.runner` file registration mechanism.
   Defaults to the target system's (non-FQDN) host name.
 * `forgejo_runner_openrc_conf`  
   A dictionary of configuration option for the Forgejo runner service.
@@ -65,9 +71,12 @@ The following is a short example for some of the configuration options this role
 
 ```yaml
 forgejo_runner_use_pkg: false
-forgejo_runner_for: "https://code.example.com/"
-forgejo_runner_secret: 7c31591e8b67225a116d4a4519ea8e507e08f71f
 forgejo_runner_config:
+  server:
+    connections:
+      forgejo:
+        url: "https://code.example.com/"
+        token: 7c31591e8b67225a116d4a4519ea8e507e08f71f
   runner:
     labels:
       - 'alpine:docker://node:current-alpine'

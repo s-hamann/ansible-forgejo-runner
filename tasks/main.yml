@@ -24,6 +24,30 @@
     forgejo_runner_group: "{{ forgejo_runner_pkg_group }}"
   when: "forgejo_runner_use_pkg | ansible.builtin.bool"
 
+- name: 'Add UUIDs to runner configuration'
+  ansible.builtin.set_fact:
+    forgejo_runner_config: |
+      {% macro hexlify(char) -%}
+      {{- char.encode().hex() -}}
+      {% endmacro -%}
+      {% macro uuid(str) -%}
+      {{- hexlify(str[:4]) }}-{{ hexlify(str[4:6]) }}-{{ hexlify(str[6:8]) }}-{{ hexlify(str[8:10]) }}-{{ hexlify(str[10:16]) -}}
+      {% endmacro -%}
+      {% set connections = {} -%}
+      {% for runner, connection in forgejo_runner_config.server.connections.items() -%}
+      {% if 'token' in connection.keys() and 'uuid' not in connection.keys() -%}
+      {% set _ = connections.update(
+      { runner:
+        {
+          'uuid': uuid(connection.token[:16])
+        }
+      }
+      ) -%}
+      {% endif -%}
+      {% endfor -%}
+      {{ {'server': {'connections': connections}} | ansible.builtin.combine(forgejo_runner_config, recursive=true) }}
+  when: "forgejo_runner_config.server.connections is defined"
+
 - name: 'Install Forgejo runner using the package manager'
   ansible.builtin.package:
     name: "{{ forgejo_runner_packages }}"
@@ -77,7 +101,7 @@
     owner: root
     group: "{{ forgejo_runner_group }}"
     mode: '0640'
-  no_log: "{{ forgejo_runner_config.cache.secret is defined }}"
+  no_log: "{{ forgejo_runner_config.cache.secret is defined or (forgejo_runner_config.server.connections | default({})).values() | selectattr('token', 'defined') | count > 0 }}"
   notify: forgejo_runner_restart
 
 - name: 'Register the Forgejo runner'
@@ -89,6 +113,7 @@
     mode: '0640'
   no_log: true
   notify: forgejo_runner_restart
+  when: "forgejo_runner_for is defined and forgejo_runner_secret is defined"
 
 # If the unit file changed, reload it now.
 - name: 'Trigger handlers'
